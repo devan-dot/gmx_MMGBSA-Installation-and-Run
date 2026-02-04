@@ -1,4 +1,3 @@
-
 #The pipeline is fine tuned for the following system settings:
 #gmx_MMPBSA 1.6.3 — Working Installation & Usage (Ubuntu 22.04, CUDA, GROMACS 2024.5)
 #System
@@ -72,21 +71,71 @@ Expected:
 
 $AMBERHOME = /home/k4bioinfo/miniconda3/envs/gmxMMPBSA
 
-6.) Running MMPBSA
+6.) 
+A) Running MM/GBSA
+
+mmgbsa.in: 
+&general
+startframe=1,
+endframe=5001,
+interval=10,
+/
+
+&gb
+igb=5,
+saltcon=0.15,
+/
+
+&decomp
+idecomp=1,
+/
 
 Command:
 
 gmx_MMPBSA -O \
+  -i mmgbsa.in \
+  -cs production.tpr \
+  -ct protein_only.xtc \
+  -ci test_index.ndx \
+  -cg 16 17 \
+  -cp topol.top \
+  -o FINAL_RESULTS_MMGBSA.dat \
+  -eo FINAL_RESULTS_PERFRAME_GBSA.csv \
+  2>&1 | tee gmx_MMGBSA_run.log
+  
+B) Running MM/PBSA  
+  
+mmpbsa.in:
+&general
+startframe=1,
+endframe=5001,
+interval=10,
+/
+
+&pb
+istrng=0.15,
+fillratio=4.0,
+radiopt=0,
+indi=1.0,
+exdi=80.0,
+
+/
+
+&decomp
+  idecomp=1,
+/
+
+Command:
+mpirun -np 4 gmx_MMPBSA -O \
   -i mmpbsa.in \
   -cs production.tpr \
   -ct protein_only.xtc \
   -ci test_index.ndx \
   -cg 16 17 \
   -cp topol.top \
-  -o FINAL_RESULTS_MMPBSA2.dat \
-  -eo FINAL_RESULTS_PERFRAME2.csv \
+  -o FINAL_RESULTS_MMPBSA.dat \
+  -eo FINAL_RESULTS_PERFRAME_MMPBSA.csv \
   2>&1 | tee gmx_MMPBSA_run.log
-
 Successful run indicators->
 
 Log should contain:
@@ -103,24 +152,23 @@ Finalizing gmx_MMPBSA: [ERROR] = 0; [WARNING] = 0
 
 7.) Check Output files
 File	                           Description
-FINAL_RESULTS_MMPBSA2.dat	   Final average ΔG
-FINAL_RESULTS_PERFRAME2.csv   	   Per-frame energies
-gmx_MMPBSA_run.log   	           Full run log
-gmx_MMPBSA.log	                   Internal diagnostic
+FINAL_RESULTS_MMGBSA/PBSA.dat	   Final average ΔG
+FINAL_RESULTS_PERFRAME_GBSA/PBSA.csv   	   Per-frame energies
+gmx_MMGBSA/PBSA_run.log   	           Full run log
+gmx_MMGBSA/PBSA.log	                   Internal diagnostic
 
 GUI Analysis
 
 8.) Launch Gui version:
 
-Command: gmx_MMPBSA_ana
+Command: gmx_MMPBSA_ana (launchs on its own from command)
 
 Load:
 
-    FINAL_RESULTS_PERFRAME2.csv for time series
+    FINAL_RESULTS_PERFRAME_GBSA/PBSA.csv for time series
 
-    FINAL_RESULTS_MMPBSA2.dat for summary
+    FINAL_RESULTS_MMGBSA/PBSA.dat for summary
 
 Create plots based on the dat files
 
 for more information reach out to https://github.com/devan-dot
-
